@@ -1,0 +1,3 @@
+[submodule "ip/vivado-library"]
+	path = ip/vivado-library
+	url = https://github.com/Digilent/vivado-library
