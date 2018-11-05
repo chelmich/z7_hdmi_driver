@@ -78,17 +78,14 @@ begin
             vcount_next <= vcount_reg;
         end if;
 
-        -- vertical video enable
-        if (vcount_reg > VFP_LEN + VSYNC_LEN + VBP_LEN - 1) then
-            -- horzontal video enable
-            if (hcount_reg > HFP_LEN + HSYNC_LEN + HBP_LEN - 1) then
-                hdmi_enable <= '1';
-            end if;
+        -- video enable
+        if (vcount_reg > VBLANK_LEN - 1) and (hcount_reg > HBLANK_LEN - 1) then
+            hdmi_enable <= '1';
+        end if;
 
-            -- horizontal sync pulse
-            if (hcount_reg > HFP_LEN - 1) and (hcount_reg < HFP_LEN + HSYNC_LEN) then
-                hdmi_hsync <= '0';
-            end if;
+        -- horizontal sync pulse
+        if (hcount_reg > HFP_LEN - 1) and (hcount_reg < HFP_LEN + HSYNC_LEN) then
+            hdmi_hsync <= '0';
         end if;
 
         -- vertical sync pulse
