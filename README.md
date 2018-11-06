@@ -1,5 +1,5 @@
 # z7_hdmi_driver
-This project was created with Vivado 2017.2. It was designed for the Zybo Z7-10 SoC but could also likely be made to work on the Z7-20. The project makes use of the rgb2dvi IP block found in Digilent's [Vivado Library.](https://github.com/Digilent/vivado-library)
+This project was created with Vivado 2017.2. It was designed for the Zybo Z7-10 SoC but could also likely be made to work on the Z7-20. The project makes use of the rgb2dvi IP block found in Digilent's [Vivado Library](https://github.com/Digilent/vivado-library).
 
 ## Setup
 To download and setup the project run the following commands:
@@ -12,9 +12,11 @@ Open Vivado and run the next command in the TCL console, substituting the locati
 ```
 source [path to project]/build.tcl
 ```
-This will create and open the project and should allow sythesis it without any additional configuration.
+This will create and open the project and should allow sythesis without any additional configuration.
 
 ## Design
 The file hdmi_sync.vhd contains the code to generate sync, enable and pixel coordinate signals. This is then instantiated within top.vhd which uses the coordinates combined with three switch inputs to produce color gradients. The top module is encapsulated within a design wrapper, connecting it to the IP blocks in the block diagram.
 
-The rgb2dvi IP block requires two clock inputs. One, PixelClk simply ticks once per pixel and can easily be found by multiplying the total number of pixels (including the blanking regions) with the desired refresh rate. For example, 640x480 at 60 Hz produces a pixel clock of 25.175 MHz which we round to 25 MHz. The second clock, SerialClk is used to serialize each 8-bit color channel into 10-bit TMDS. The serializing clock must have a frequency of exactly 5 times the pixel clock. In our example we use 125 MHz. We generate both of these clock signals with a Clocking Wizard IP block.
+The rgb2dvi IP block requires two clock inputs. One, PixelClk, simply ticks once per pixel and can easily be found by multiplying the total number of pixels (including the blanking regions) with the desired refresh rate. For example, 640x480 at 60 Hz produces a pixel clock of 25.175 MHz which we round to 25 MHz. The second clock, SerialClk is used to serialize each 8-bit color channel into 10-bit TMDS. The serializing clock must have a frequency of exactly 5 times the pixel clock. In our example we use 125 MHz. We generate both of these clock signals with a Clocking Wizard IP block.
+
+A set of constants within hdmi_sync.vhd describe the timings for the enable, hsync and vsync signals. This demo uses VGA 640x480 at 60 Hz because it is compatible with most monitors. Other timings can be substituted by modifying the constants. Example timings for a few very common resolutions can be found [here](https://timetoexplore.net/blog/video-timings-vga-720p-1080p). Remember to update the pixel and serial clocks if you do end up changing the resoltion.
