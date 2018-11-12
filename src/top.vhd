@@ -17,24 +17,12 @@ entity top is
 end top;
 
 architecture rtl of top is
-    component hdmi_sync is
-        port (
-            clk : in STD_LOGIC;
-            reset : in STD_LOGIC;
-            hdmi_hsync : out STD_LOGIC;
-            hdmi_vsync : out STD_LOGIC;
-            hdmi_enable : out STD_LOGIC;
-            pixel_x : out unsigned(10 downto 0);
-            pixel_y : out unsigned(9 downto 0)
-        );
-    end component;
-
     signal pixel_x : unsigned(10 downto 0);
     signal pixel_y : unsigned(9 downto 0);
 
 begin
 
-    hdmi_sync_i: component hdmi_sync
+    hdmi_sync_i: entity work.hdmi_sync(rtl)
     port map (
         clk => clk,
         reset => reset,
