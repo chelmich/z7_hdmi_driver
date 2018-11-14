@@ -194,7 +194,7 @@ CONFIG.MMCM_CLKOUT1_DIVIDE {8} \
 CONFIG.MMCM_DIVCLK_DIVIDE {1} \
 CONFIG.NUM_OUT_CLKS {2} \
 CONFIG.USE_BOARD_FLOW {true} \
-CONFIG.USE_LOCKED {false} \
+CONFIG.USE_LOCKED {true} \
 CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
 
@@ -209,6 +209,9 @@ CONFIG.USE_RESET {false} \
      return 1
    }
   
+  # Create instance: proc_sys_reset_0, and set properties
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
+
   # Create instance: rgb2dvi_0, and set properties
   set rgb2dvi_0 [ create_bd_cell -type ip -vlnv digilentinc.com:ip:rgb2dvi:1.4 rgb2dvi_0 ]
   set_property -dict [ list \
@@ -240,13 +243,15 @@ CONFIG.NUM_PORTS {3} \
 
   # Create port connections
   connect_bd_net -net clk_wiz_0_clk_fast [get_bd_pins clk_wiz_0/clk_fast] [get_bd_pins rgb2dvi_0/SerialClk]
-  connect_bd_net -net clk_wiz_0_clk_slow [get_bd_pins clk_wiz_0/clk_slow] [get_bd_pins hdmi_sync_0/clk] [get_bd_pins rgb2dvi_0/PixelClk] [get_bd_pins top_0/clk]
+  connect_bd_net -net clk_wiz_0_clk_slow [get_bd_pins clk_wiz_0/clk_slow] [get_bd_pins hdmi_sync_0/clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins rgb2dvi_0/PixelClk] [get_bd_pins top_0/clk]
+  connect_bd_net -net clk_wiz_0_locked [get_bd_pins clk_wiz_0/locked] [get_bd_pins proc_sys_reset_0/dcm_locked]
   connect_bd_net -net hdmi_sync_0_hdmi_enable [get_bd_pins hdmi_sync_0/hdmi_enable] [get_bd_pins rgb2dvi_0/vid_pVDE]
   connect_bd_net -net hdmi_sync_0_hdmi_hsync [get_bd_pins hdmi_sync_0/hdmi_hsync] [get_bd_pins rgb2dvi_0/vid_pHSync]
   connect_bd_net -net hdmi_sync_0_hdmi_vsync [get_bd_pins hdmi_sync_0/hdmi_vsync] [get_bd_pins rgb2dvi_0/vid_pVSync]
   connect_bd_net -net hdmi_sync_0_pixel_x [get_bd_pins hdmi_sync_0/pixel_x] [get_bd_pins top_0/pixel_x]
   connect_bd_net -net hdmi_sync_0_pixel_y [get_bd_pins hdmi_sync_0/pixel_y] [get_bd_pins top_0/pixel_y]
-  connect_bd_net -net reset_1 [get_bd_ports reset] [get_bd_pins hdmi_sync_0/reset] [get_bd_pins top_0/reset]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins hdmi_sync_0/reset] [get_bd_pins proc_sys_reset_0/peripheral_reset] [get_bd_pins top_0/reset]
+  connect_bd_net -net reset_rtl_1 [get_bd_ports reset] [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net sw_b_1 [get_bd_ports sw_b] [get_bd_pins top_0/sw_b]
   connect_bd_net -net sw_g_1 [get_bd_ports sw_g] [get_bd_pins top_0/sw_g]
   connect_bd_net -net sw_r_1 [get_bd_ports sw_r] [get_bd_pins top_0/sw_r]
