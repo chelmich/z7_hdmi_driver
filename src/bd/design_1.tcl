@@ -37,6 +37,13 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 # To test this script, run the following commands from Vivado Tcl console:
 # source design_1_script.tcl
 
+
+# The design that will be created by this Tcl script contains the following 
+# module references:
+# hdmi_sync, top
+
+# Please add the sources of those modules before sourcing this Tcl script.
+
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
 # <./myproj/project_1.xpr> in the current working folder.
@@ -157,13 +164,13 @@ proc create_root_design { parentCell } {
   set hdmi_out [ create_bd_intf_port -mode Master -vlnv digilentinc.com:interface:tmds_rtl:1.0 hdmi_out ]
 
   # Create ports
-  set hdmi_blue [ create_bd_port -dir I -from 7 -to 0 hdmi_blue ]
-  set hdmi_clock [ create_bd_port -dir O -type clk hdmi_clock ]
-  set hdmi_enable [ create_bd_port -dir I hdmi_enable ]
-  set hdmi_green [ create_bd_port -dir I -from 7 -to 0 hdmi_green ]
-  set hdmi_hsync [ create_bd_port -dir I hdmi_hsync ]
-  set hdmi_red [ create_bd_port -dir I -from 7 -to 0 hdmi_red ]
-  set hdmi_vsync [ create_bd_port -dir I hdmi_vsync ]
+  set reset [ create_bd_port -dir I -type rst reset ]
+  set_property -dict [ list \
+CONFIG.POLARITY {ACTIVE_HIGH} \
+ ] $reset
+  set sw_b [ create_bd_port -dir I sw_b ]
+  set sw_g [ create_bd_port -dir I sw_g ]
+  set sw_r [ create_bd_port -dir I sw_r ]
   set sys_clock [ create_bd_port -dir I -type clk sys_clock ]
   set_property -dict [ list \
 CONFIG.FREQ_HZ {125000000} \
@@ -191,12 +198,34 @@ CONFIG.USE_LOCKED {false} \
 CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
 
+  # Create instance: hdmi_sync_0, and set properties
+  set block_name hdmi_sync
+  set block_cell_name hdmi_sync_0
+  if { [catch {set hdmi_sync_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $hdmi_sync_0 eq "" } {
+     catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create instance: rgb2dvi_0, and set properties
   set rgb2dvi_0 [ create_bd_cell -type ip -vlnv digilentinc.com:ip:rgb2dvi:1.4 rgb2dvi_0 ]
   set_property -dict [ list \
 CONFIG.kGenerateSerialClk {false} \
  ] $rgb2dvi_0
 
+  # Create instance: top_0, and set properties
+  set block_name top
+  set block_cell_name top_0
+  if { [catch {set top_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $top_0 eq "" } {
+     catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+  
   # Create instance: xlconcat_0, and set properties
   set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
   set_property -dict [ list \
@@ -211,14 +240,20 @@ CONFIG.NUM_PORTS {3} \
 
   # Create port connections
   connect_bd_net -net clk_wiz_0_clk_fast [get_bd_pins clk_wiz_0/clk_fast] [get_bd_pins rgb2dvi_0/SerialClk]
-  connect_bd_net -net clk_wiz_0_clk_slow [get_bd_ports hdmi_clock] [get_bd_pins clk_wiz_0/clk_slow] [get_bd_pins rgb2dvi_0/PixelClk]
-  connect_bd_net -net hdmi_enable_1 [get_bd_ports hdmi_enable] [get_bd_pins rgb2dvi_0/vid_pVDE]
-  connect_bd_net -net hdmi_green_1 [get_bd_ports hdmi_blue] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net hdmi_green_2 [get_bd_ports hdmi_green] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net hdmi_hsync_1 [get_bd_ports hdmi_hsync] [get_bd_pins rgb2dvi_0/vid_pHSync]
-  connect_bd_net -net hdmi_red_1 [get_bd_ports hdmi_red] [get_bd_pins xlconcat_0/In2]
-  connect_bd_net -net hdmi_vsync_1 [get_bd_ports hdmi_vsync] [get_bd_pins rgb2dvi_0/vid_pVSync]
+  connect_bd_net -net clk_wiz_0_clk_slow [get_bd_pins clk_wiz_0/clk_slow] [get_bd_pins hdmi_sync_0/clk] [get_bd_pins rgb2dvi_0/PixelClk] [get_bd_pins top_0/clk]
+  connect_bd_net -net hdmi_sync_0_hdmi_enable [get_bd_pins hdmi_sync_0/hdmi_enable] [get_bd_pins rgb2dvi_0/vid_pVDE]
+  connect_bd_net -net hdmi_sync_0_hdmi_hsync [get_bd_pins hdmi_sync_0/hdmi_hsync] [get_bd_pins rgb2dvi_0/vid_pHSync]
+  connect_bd_net -net hdmi_sync_0_hdmi_vsync [get_bd_pins hdmi_sync_0/hdmi_vsync] [get_bd_pins rgb2dvi_0/vid_pVSync]
+  connect_bd_net -net hdmi_sync_0_pixel_x [get_bd_pins hdmi_sync_0/pixel_x] [get_bd_pins top_0/pixel_x]
+  connect_bd_net -net hdmi_sync_0_pixel_y [get_bd_pins hdmi_sync_0/pixel_y] [get_bd_pins top_0/pixel_y]
+  connect_bd_net -net reset_1 [get_bd_ports reset] [get_bd_pins hdmi_sync_0/reset] [get_bd_pins top_0/reset]
+  connect_bd_net -net sw_b_1 [get_bd_ports sw_b] [get_bd_pins top_0/sw_b]
+  connect_bd_net -net sw_g_1 [get_bd_ports sw_g] [get_bd_pins top_0/sw_g]
+  connect_bd_net -net sw_r_1 [get_bd_ports sw_r] [get_bd_pins top_0/sw_r]
   connect_bd_net -net sys_clock_1 [get_bd_ports sys_clock] [get_bd_pins clk_wiz_0/clk_in1]
+  connect_bd_net -net top_0_hdmi_blue [get_bd_pins top_0/hdmi_blue] [get_bd_pins xlconcat_0/In1]
+  connect_bd_net -net top_0_hdmi_green [get_bd_pins top_0/hdmi_green] [get_bd_pins xlconcat_0/In0]
+  connect_bd_net -net top_0_hdmi_red [get_bd_pins top_0/hdmi_red] [get_bd_pins xlconcat_0/In2]
   connect_bd_net -net xlconcat_0_dout [get_bd_pins rgb2dvi_0/vid_pData] [get_bd_pins xlconcat_0/dout]
 
   # Create address segments
